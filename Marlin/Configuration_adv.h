@@ -3541,7 +3541,10 @@
   #define SPINDLE_LASER_USE_PWM                // Enable if your controller supports setting the speed/power
   #if ENABLED(SPINDLE_LASER_USE_PWM)
     #define SPINDLE_LASER_PWM_INVERT    false  // Set to "true" if the speed/power goes up when you want it to go slower
-    #define SPINDLE_LASER_FREQUENCY     2500   // (Hz) Spindle/laser frequency (only on supported HALs: AVR and LPC)
+    #define SPINDLE_LASER_FREQUENCY     2500   // (Hz) Spindle/laser frequency (only on supported HALs: AVR, ESP32, and LPC)
+                                               // ESP32: If SPINDLE_LASER_PWM_PIN is onboard then <=78125Hz. For I2S expander
+                                               //  the frequency determines the PWM resolution. 2500Hz = 0-100, 977Hz = 0-255, ...
+                                               //  (250000 / SPINDLE_LASER_FREQUENCY) = max value.
   #endif
 
   //#define AIR_EVACUATION                     // Cutter Vacuum / Laser Blower motor control with G-codes M10-M11
@@ -3615,13 +3618,24 @@
     #endif
 
     // Define the minimum and maximum test pulse time values for a laser test fire function
-    #define LASER_TEST_PULSE_MIN           1   // Used with Laser Control Menu
-    #define LASER_TEST_PULSE_MAX         999   // Caution: Menu may not show more than 3 characters
+    #define LASER_TEST_PULSE_MIN           1   // (ms) Used with Laser Control Menu
+    #define LASER_TEST_PULSE_MAX         999   // (ms) Caution: Menu may not show more than 3 characters
+
+    #define SPINDLE_LASER_POWERUP_DELAY   50   // (ms) Delay to allow the spindle/laser to come up to speed/power
+    #define SPINDLE_LASER_POWERDOWN_DELAY 50   // (ms) Delay to allow the spindle to stop
+
+   /**
+    * Laser Safety Timeout
+    *
+    * The laser should be turned off when there is no movement for a period of time.
+    * Consider material flammability, cut rate, and G-code order when setting this
+    * value. Too low and it could turn off during a very slow move; too high and
+    * the material could ignite.
+    */
+    #define LASER_SAFETY_TIMEOUT_MS     1000   // (ms)
 
     /**
-     * Enable inline laser power to be handled in the planner / stepper routines.
-     * Inline power is specified by the I (inline) flag in an M3 command (e.g., M3 S20 I)
-     * or by the 'S' parameter in G0/G1/G2/G3 moves (see LASER_MOVE_POWER).
+     * Any M3 or G1/2/3/5 command with the 'I' parameter enables continuous inline power mode.
      *
      * e.g., 'M3 I' enables continuous inline power which is processed by the planner.
      * Power is stored in move blocks and applied when blocks are processed by the Stepper ISR.
@@ -3636,7 +3650,6 @@
      *
      * M5 I clears inline mode and set power to 0, M5 sets the power output to 0 but leaves inline mode on.
      */
-    #define LASER_POWER_INLINE
 
     /**
      * Enable M3 commands for laser mode inline power planner syncing.
@@ -3702,20 +3715,27 @@
       #define I2C_AMMETER_IMAX            0.1    // (Amps) Calibration value for the expected current range
       #define I2C_AMMETER_SHUNT_RESISTOR  0.1    // (Ohms) Calibration shunt resistor value
     #endif
+<<<<<<< HEAD
   #endif  
-#endif // SPINDLE_FEATURE || LASER_FEATURE
+=======
 
-/**
- * Synchronous Laser Control with M106/M107
- *
- * Marlin normally applies M106/M107 fan speeds at a time "soon after" processing
- * a planner block. This is too inaccurate for a PWM/TTL laser attached to the fan
- * header (as with some add-on laser kits). Enable this option to set fan/laser
- * speeds with much more exact timing for improved print fidelity.
- *
- * NOTE: This option sacrifices some cooling fan speed options.
- */
-//#define LASER_SYNCHRONOUS_M106_M107
+    //
+    // Laser Coolant Flow Meter
+    //
+    //#define LASER_COOLANT_FLOW_METER
+    #if ENABLED(LASER_COOLANT_FLOW_METER)
+      #define FLOWMETER_PIN         20  // Requires an external interrupt-enabled pin (e.g., RAMPS 2,3,18,19,20,21)
+      #define FLOWMETER_PPL       5880  // (pulses/liter) Flow meter pulses-per-liter on the input pin
+      #define FLOWMETER_INTERVAL  1000  // (ms) Flow rate calculation interval in milliseconds
+      #define FLOWMETER_SAFETY          // Prevent running the laser without the minimum flow rate set below
+      #if ENABLED(FLOWMETER_SAFETY)
+        #define FLOWMETER_MIN_LITERS_PER_MINUTE 1.5 // (liters/min) Minimum flow required when enabled
+      #endif
+    #endif
+
+  #endif
+>>>>>>> 95341bc8fe (Update config)
+#endif // SPINDLE_FEATURE || LASER_FEATURE
 
 /**
  * Coolant Control
